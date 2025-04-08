@@ -1,35 +1,73 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState } from "react";
+import { getRandomPokemon } from "./api";
+import PokemonSlot from "./components/PokemonSlot/PokemonSlot";
+import TeamStats from "./components/TeamStats/TeamStats";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+const App = () => {
+  const [team, setTeam] = useState(Array(6).fill(null));
+  const [isLoading, setIsLoading] = useState(false);
+
+  const assembleTeam = async () => {
+    setIsLoading(true);
+    try {
+      const newTeam = await Promise.all(
+        Array(6)
+          .fill()
+          .map(() => getRandomPokemon())
+      );
+      setTeam(newTeam.filter((pokemon) => pokemon !== null));
+    } catch (error) {
+      console.error("Error assembling team:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const replacePokemon = async (index) => {
+    try {
+      const newPoke = await getRandomPokemon();
+      if (newPoke) {
+        setTeam(team.map((poke, i) => (i === index ? newPoke : poke)));
+      }
+    } catch (error) {
+      console.error("Error replacing Pokémon:", error);
+    }
+  };
+
+  const removePokemon = (index) => {
+    setTeam(team.map((poke, i) => (i === index ? null : poke)));
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <div className="container">
+      <h1 className="title">PokeTeam Creator!</h1>
 
-export default App
+      <div className="grid">
+        {team.map((poke, i) => (
+          <PokemonSlot
+            key={i}
+            pokemon={poke}
+            index={i}
+            onReplace={replacePokemon}
+            onRemove={removePokemon}
+          />
+        ))}
+      </div>
+
+      <div className="text-center mt-8">
+        <button className="button" onClick={assembleTeam} disabled={isLoading}>
+          {isLoading
+            ? "Loading..."
+            : team.every((p) => p)
+            ? "Make All New Team"
+            : "Assemble my PokeTeam!"}
+        </button>
+      </div>
+
+      <TeamStats team={team} />
+    </div>
+  );
+};
+
+export default App;
